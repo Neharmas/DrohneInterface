@@ -18,11 +18,17 @@ def establish_connection(HOST, PORT, socket):
 
 def get_coordinates():
         data = ""
-        path = os.path.join(os.path.expanduser("~"), "brain", "i2o", "bodenpunkte.json")
-        with open(path) as f:
-                for x in f:
-                        data += str(x)
-        return json.loads(data)
+        i2o_path = os.path.join(os.path.expanduser("~"), "brain", "i2o")
+
+        fov_path = os.path.join(i2o_path, "bodenpunkte.json")
+        with open(fov_path) as f:
+            data = json.load(f)
+
+        marker_path = os.path.join(i2o_path, "marker.json")
+        with open(marker_path) as f:
+            data.update(json.load(f))
+
+        return data
 
 tasks = [
     {"func": get_coordinates, "interval": 1/20, "last": 0}
