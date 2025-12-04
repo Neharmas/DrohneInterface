@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 import os
 import json
 import time
@@ -70,14 +71,27 @@ def main(HOST, PORT=8080):
                     try:
                         msg = s.recv(1024)
                         if msg:
-                            # handle or print controller message if needed
-                            pass
+                            try:
+                                data = json.loads(msg.decode("utf-8"))
+                            except json.JSONDecodeError as e:
+                                print(f"Failed to decode JSON: {e}")
+                                data = None
+
+                            if data is not None:
+                                # Prepare path and ensure directory exists
+                                input_path = Path.home() / "input" / "input.json"
+                                input_path.parent.mkdir(parents=True, exist_ok=True)
+
+                                # Write JSON to file
+                                with input_path.open("w", encoding="utf-8") as f:
+                                    json.dump(data, f, ensure_ascii=False, indent=4)
                         else:
                             # No data means connection closed by host
                             raise ConnectionResetError("Host hat die Verbindung aufgelöst")
                     except BlockingIOError:
                         # no data available (normal in non-blocking mode)
                         pass
+                   # except ExtraData
                     except ConnectionResetError as e:
                         print(f"Verbindung verloren: {e}")
                         running = False
