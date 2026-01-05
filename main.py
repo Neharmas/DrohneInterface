@@ -72,9 +72,10 @@ tasks = [
     {"func": get_img, "interval": 1/30, "last": 0}
 ]
 
-RECONNECT_DELAY = 3.0  # Sekunden warten vor erneutem Versuch
+RECONNECT_DELAY = 3.0
 
 def main(HOST, PORT=8080):
+    recv_buffer = ""
     while True:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -97,24 +98,33 @@ def main(HOST, PORT=8080):
                                 break
                             t["last"] = now
 
-                    # --- Check for incoming controller messages ---
+                    # Check for incoming controller messages
                     try:
                         msg = s.recv(1024)
                         if msg:
-                            try:
-                                data = json.loads(msg.decode("utf-8"))
-                            except json.JSONDecodeError as e:
-                                print(f"Failed to decode JSON: {e}")
-                                data = None
+                            recv_buffer += msg.decode("utf-8")
 
-                            if data is not None:
+                            while "\n" in recv_buffer:
+                                line, recv_buffer = recv_buffer.split("\n", 1)
+
+                                if not line.strip():
+                                    continue
+
+                                try:
+                                    data = json.loads(line)
+                                except json.JSONDecodeError as e:
+                                    print(f"JSON Decode Fehler (unvollständig?): {e}")
+                                    continue
+
                                 input_path = Path.home() / "input" / "input.json"
                                 input_path.parent.mkdir(parents=True, exist_ok=True)
 
                                 with input_path.open("w", encoding="utf-8") as f:
                                     json.dump(data, f, ensure_ascii=False, indent=4)
+
                         else:
                             raise ConnectionResetError("Host hat die Verbindung aufgelöst")
+
                     except BlockingIOError:
                         pass
                     except ConnectionResetError as e:
