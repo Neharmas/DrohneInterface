@@ -15,7 +15,7 @@ def establish_connection(HOST, PORT, socket):
         print(f"Verbindung wird zu {HOST}:{PORT} aufgebaut...")
         socket.connect((HOST, PORT))
 
-    socket.setblocking(False)
+    socket.setblocking(True)
     print("Verbindung aufgestellt!")
 
 def get_coordinates():
