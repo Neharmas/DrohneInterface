@@ -4,6 +4,7 @@ import os
 import json
 import time
 import socket, struct
+import cv2
 
 def establish_connection(HOST, PORT, socket):
     if ":" in HOST:
@@ -31,18 +32,45 @@ def get_coordinates():
 
         return data
 
-tasks = [
-    {"func": get_coordinates, "interval": 1/20, "last": 0}
-]
+def get_img():
+    img_path = os.path.join(os.path.expanduser("~"), "LIVE")
+
+    files = [
+        f for f in os.listdir(img_path)
+        if f.lower().endswith(".jpg")
+    ]
+
+    if len(files) < 2:
+        return None
+
+    files = sorted(files)
+    second_latest = files[-2]
+    data = cv2.imread(os.path.join(img_path, second_latest))
+    if data is None:
+        return None
+
+    return data
 
 def send_json(socket, data):
     msg = json.dumps(data).encode("utf-8")
     header = struct.pack(">BI", 0x02, len(msg))
     socket.sendall(header + msg)
 
-def send_frame(socket, img_bytes):
+def send_frame(socket, img):
+    success, encoded = cv2.imencode(".jpg", img)
+    if not success:
+        print("Bild konnte nicht enkodiert werden")
+        return
+
+    img_bytes = encoded.tobytes()
+
     header = struct.pack(">BI", 0x01, len(img_bytes))
     socket.sendall(header + img_bytes)
+
+tasks = [
+    {"func": get_coordinates, "interval": 1/20, "last": 0},
+    {"func": get_img, "interval": 1/30, "last": 0}
+]
 
 RECONNECT_DELAY = 3.0  # Sekunden warten vor erneutem Versuch
 
@@ -61,6 +89,8 @@ def main(HOST, PORT=8080):
                                 data = t["func"]()
                                 if t["func"] == get_coordinates:
                                     send_json(s, data)
+                                elif t["func"] == get_img:
+                                    send_frame(s, data)
                             except (BrokenPipeError, ConnectionResetError, OSError) as e:
                                 print(f"Verbindung beim Übertragen abgebrochen: {e}")
                                 running = False
@@ -78,20 +108,15 @@ def main(HOST, PORT=8080):
                                 data = None
 
                             if data is not None:
-                                # Prepare path and ensure directory exists
                                 input_path = Path.home() / "input" / "input.json"
                                 input_path.parent.mkdir(parents=True, exist_ok=True)
 
-                                # Write JSON to file
                                 with input_path.open("w", encoding="utf-8") as f:
                                     json.dump(data, f, ensure_ascii=False, indent=4)
                         else:
-                            # No data means connection closed by host
                             raise ConnectionResetError("Host hat die Verbindung aufgelöst")
                     except BlockingIOError:
-                        # no data available (normal in non-blocking mode)
                         pass
-                   # except ExtraData
                     except ConnectionResetError as e:
                         print(f"Verbindung verloren: {e}")
                         running = False
