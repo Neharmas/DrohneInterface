@@ -22,12 +22,16 @@ def get_coordinates():
         data = ""
         i2o_path = os.path.join(os.path.expanduser("~"), "brain", "i2o")
 
-        fov_path = os.path.join(i2o_path, "bodenpunkte.json")
+        fov_path = os.path.join(i2o_path, "blickpunkt.json")
         with open(fov_path) as f:
             data = json.load(f)
 
         marker_path = os.path.join(i2o_path, "marker.json")
         with open(marker_path) as f:
+            data.update(json.load(f))
+
+        xyz_path = os.path.join(i2o_path, "xyz.json")
+        with open(xyz_path) as f:
             data.update(json.load(f))
 
         return data
