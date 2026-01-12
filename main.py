@@ -22,7 +22,7 @@ def get_coordinates():
         data = ""
         i2o_path = os.path.join(os.path.expanduser("~"), "brain", "i2o")
 
-        fov_path = os.path.join(i2o_path, "blickpunkt.json")
+        fov_path = os.path.join(i2o_path, "sichtfeld.json")
         with open(fov_path) as f:
             data = json.load(f)
 
