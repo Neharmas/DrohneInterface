@@ -71,6 +71,23 @@ def send_frame(socket, img):
     header = struct.pack(">BI", 0x01, len(img_bytes))
     socket.sendall(header + img_bytes)
 
+def reset_input():
+    input_path = Path.home() / "input" / "input.json"
+    input_path.parent.mkdir(parents=True, exist_ok=True)
+
+    default_data = {
+        "move_z": 0,
+        "move_y": 0,
+        "move_x": 0,
+        "rotate": 0,
+        "look_x": 0,
+        "look_y": 0,
+        "zoom": 3
+    }
+
+    with input_path.open("w", encoding="utf-8") as f:
+        json.dump(default_data, f, ensure_ascii=False, indent=4)
+
 tasks = [
     {"func": get_coordinates, "interval": 1/20, "last": 0},
     {"func": get_img, "interval": 1/30, "last": 0}
@@ -127,27 +144,30 @@ def main(HOST, PORT=8080):
                                     json.dump(data, f, ensure_ascii=False, indent=4)
 
                         else:
+                            reset_input()
                             raise ConnectionResetError("Host hat die Verbindung aufgelöst")
 
                     except BlockingIOError:
-                        pass
+                        reset_input()
                     except ConnectionResetError as e:
                         print(f"Verbindung verloren: {e}")
+                        reset_input()
                         running = False
 
                     time.sleep(0.01)  # avoid 100% CPU
 
         except (ConnectionRefusedError, TimeoutError) as e:
             print(f"Verbindung konnte nicht zum Host aufgestellt werden: {e}")
+            reset_input()
         except KeyboardInterrupt:
             print("Vom Nutzer unterbrochen — abbrechen")
+            reset_input()
             break
         except Exception as e:
             print(f"Unerwartete Fehlmeldung: {e}")
-
+            reset_input()
         print(f"Verbindung wird wieder aufgestellt in {RECONNECT_DELAY} s...")
         time.sleep(RECONNECT_DELAY)
-
 
 if __name__ == "__main__":
     if len(sys.argv) == 3:
