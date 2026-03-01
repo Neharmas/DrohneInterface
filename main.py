@@ -113,6 +113,8 @@ def main(HOST, PORT=8080):
                                     send_json(s, data)
                                 elif t["func"] == get_img:
                                     send_frame(s, data)
+                            except FileNotFoundError as e:
+                                print(f"Sensordaten nicht gefunden: {e}")
                             except (BrokenPipeError, ConnectionResetError, OSError) as e:
                                 print(f"Verbindung beim Übertragen abgebrochen: {e}")
                                 running = False
